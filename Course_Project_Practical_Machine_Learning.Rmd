@@ -35,6 +35,7 @@ pmltraining <- read.csv("pml-training.csv", na.strings=c('NA','#DIV/0!',' ',''))
 
 ```{r splitTrainingData}
 # Split the training dataset - Reserve 30% to use for out-of-sample cross validation
+set.seed(424298)
 InTrain <- createDataPartition(pmltraining$classe, p=0.7, list=FALSE)
 training <- pmltraining[InTrain,]
 testing <- pmltraining[-InTrain,]
@@ -54,7 +55,7 @@ dim(training)                          #Show new training data with only 53 colu
 
 ### Build and Train the Machine Learning Algorithm
 
-I chose to build the Machine Learning Algorithm using caret's 'train' function using the 'random forest' method.  Random Forest has a reputation for being very accurate especially for datasets with many interacting features (which perfectly describes this dataset.)  I chose to use 'cv' with 'number'=5 to do 5-fold cross-validation thus reducing the possibility of overfitting.
+I chose to build the Machine Learning Algorithm using caret's 'train' function using the 'random forest' method.  Random Forest has a reputation for being very accurate especially for datasets with many interacting features (which perfectly describes this dataset.)  I chose to use 'cv' with 'number'=5 to do 5-fold cross-validation thus reducing the possibility of overfitting.  This function automatically chooses the  model with the highest accuracy as the final model.
 
 ```{r doTrainRandomForestCrossValidationModelFit}
 # Train model using caret's 'train' with 'random forest' method and 5-fold cross-validation.
@@ -73,22 +74,14 @@ cvFit
 cvFit$finalModel
 ```
 
-### Do Cross Validation and get In-Sample and Out-Of-Sample Error Estimates
+### Do Cross Validation to get Out-Of-Sample Error Estimates
 
-I have used cross-validation with the 70% portion of the training dataset in order to pick the predictors and build the model.  Since that data was used to create the model, I must then use the model on the 30% portion that had been set aside in order to calculate the out-of-sample error estimate.  Here we show the actual in-sample error rate, and then the out-of-sample error rate against the 30% reserved portion of the training dataset.
-
-```{r doInSampleErrorRateCalculation}
-# Predict using in-sample data to get in-sample error rate (on the 70% portion of the training dataset)
-pred.cvtrain <- predict(cvFit, newdata=training)
-(sum(pred.cvtrain != training$classe)) / nrow(training) #Show in-sample error rate on training data
-```
-
-I then look at the out-of-sample error rate by cross-validating against the independent data (the 30% portion of the training dataset.) 
+Cross-validation was used on the 70% portion of the dataset to create the final model above.  The "OOB estimate of error rate" was .74%.  This is the "in-sample" error rate since it was calculated using the same data that was used to pick the predictors and build the model. To get the estimated "out-of-sample" error rate, here I cross-validate against the independent data (the 30% portion).  As expected, we see the **"out-of-sample" error rate of .78%** is slightly higher than the **"in-sample" error rate of .74%**.
 
 ```{r doOutOfSampleErrorRateCalculation}
 # Do cross validation testing on 30% of training dataset that was reserved for testing.
 pred.cvtest <- predict(cvFit, newdata=testing)
-(sum(pred.cvtest != testing$classe)) / nrow(testing)  # Show expected out-of-sample error rate
+(sum(pred.cvtest != testing$classe)) / nrow(testing)  # Show out-of-sample error rate
 table(pred.cvtest, testing$classe)
 ```
 
